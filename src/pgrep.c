@@ -369,7 +369,8 @@ static int has_fcntl(int fd)
  * on success
  *
  * Note: pidfile only needs to start with a number and
- * then have EOL/EOF or whitespace
+ * may have more than one line each with a single pid
+ * then have EOL/EOF or whitespace.
  */
 static struct el *read_pidfile(
         const char *restrict pidfile,
@@ -377,6 +378,9 @@ static struct el *read_pidfile(
 {
     FILE *fp;
     char pidbuf[256];
+    int i = 0;
+    int size = 0;
+    struct el *list = NULL;
 
     if (strcmp(pidfile, "-") == 0)
         fp = stdin;
@@ -393,21 +397,32 @@ static struct el *read_pidfile(
             return NULL;
         }
     }
-    if (fgets(pidbuf, sizeof pidbuf, fp) != NULL) {
+
+    for(;fgets(pidbuf, sizeof pidbuf, fp) != NULL;) {
         long pid;
         char *end = NULL;
-
         errno = 0;
         pid = strtol(pidbuf, &end, 10);
-        if (errno == 0 && pidbuf != end && end != NULL && (*end == '\0' || isspace(*end))) {
-            struct el *list = NULL;
-            list = xmalloc(2 * sizeof *list);
-            list[0].num = 1;
-            list[1].num = pid;
-            return list;
+        if (errno != 0 || end == NULL || !(*end == '\0' || isspace(*end))) {
+            i = 0;
+            break;
+        } else if (pidbuf == end) {
+            break;
         }
+        if (i == size) {
+            grow_size(size);
+            list = xrealloc(list, (1 + size) * sizeof *list);
+        }
+        list[++i].num = pid;
     }
-    return NULL;
+
+    if (!i || ferror(fp)) {
+        free(list);
+        list = NULL;
+    } else {
+        list[0].num = i;
+    }
+    return list;
 }
 
 static int conv_uid (const char *restrict name, struct el *restrict e)
