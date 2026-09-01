@@ -902,7 +902,7 @@ static struct el * select_procs (int *num)
 
         task_cmdline = PIDS_GETSTR(CMDLINE);
 
-        if (opt_long || opt_longlong || opt_shell_quote || (match && opt_pattern)) {
+        if (opt_long || opt_longlong || opt_shell_quote || opt_echo || (match && opt_pattern)) {
             if (opt_shell_quote) {
                 char *quoted;
                 if (opt_longlong) {

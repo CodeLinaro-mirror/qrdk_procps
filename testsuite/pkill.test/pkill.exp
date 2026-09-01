@@ -18,6 +18,10 @@ expect_pass "$test" "^\(lt-\)\?pkill: no matching criteria specified\\s*"
 make_testproc
 set testproc_len [ string length $testproc_comm ]
 set testproc_trim [ string range $testproc_comm 0 [ expr { $testproc_len - 2 } ] ]
+set pidfile [exec mktemp]
+set fh [open $pidfile w]
+puts $fh $testproc1_pid
+close $fh
 
 set test "pkill find both test pids"
 spawn $pkill -0 -e $testproc_comm
@@ -31,8 +35,21 @@ set test "pkill with trailing garbage on int signal"
 spawn $pkill -0garbage $testproc_comm
 expect_pass "$test" "invalid option -- '0'"
 
-# Cleanup
+set test "pkill with echo and pidfile"
+spawn $pkill -e -F $pidfile -0
+expect_pass "$test" "^$testproc_comm killed \\(pid $testproc1_pid\\)\\s+$"
+
+set test "pkill with pidfile and echo"
+spawn $pkill -F $pidfile -e -0
+expect_pass "$test" "^$testproc_comm killed \\(pid $testproc1_pid\\)\\s+$"
+
 kill_testproc
+
+set test "pkill with echo and pidfile with no process"
+spawn $pkill -e -F $pidfile -0
+expect_blank "$test"
+
+file delete $pidfile
 
 make_pipeproc
 
