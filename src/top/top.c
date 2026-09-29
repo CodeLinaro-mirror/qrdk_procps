@@ -2793,26 +2793,15 @@ static void *cpus_refresh (void *unused) {
 
 
         /*
-         * This serves as our interface to the memory portion of libprocps.
-         * The sampling frequency is reduced in order to minimize overhead. */
+         * This serves as our interface to the memory portion of libproc. */
 static void *memory_refresh (void *unused) {
-   static time_t sav_secs;
-   time_t cur_secs;
-
    do {
 #ifdef THREADED_MEM
       while (sem_wait(&Semaphore_memory_beg) == -1 && errno == EINTR)
          ;
 #endif
-      if (Frames_signal)
-         sav_secs = 0;
-      cur_secs = time(NULL);
-
-      if (3 <= cur_secs - sav_secs) {
-         if (!(Mem_stack = procps_meminfo_select(Mem_ctx, Mem_items, MAXTBL(Mem_items))))
-            error_exit(fmtmk(N_fmt(LIB_errormem_fmt), __LINE__, strerror(errno)));
-         sav_secs = cur_secs;
-      }
+      if (!(Mem_stack = procps_meminfo_select(Mem_ctx, Mem_items, MAXTBL(Mem_items))))
+         error_exit(fmtmk(N_fmt(LIB_errormem_fmt), __LINE__, strerror(errno)));
 #ifdef THREADED_MEM
       sem_post(&Semaphore_memory_end);
    } while (1);
